@@ -19,11 +19,18 @@
     { id: 'disneyplus', name: 'Disney+', mark: true, appId: 'MCmYXNxgcu.DisneyPlus' },
     { id: 'youtube', name: 'YouTube', mark: true, appId: '9Ur5IzDKqV.TizenYouTube' },
     { id: 'appletv', name: 'Apple TV', mark: true, appId: 'com.samsung.tv.aria-video' },
-    { id: 'primevideo', name: 'Prime Video', mark: true, appId: 'org.tizen.primevideo' },
+    { id: 'primevideo', name: 'Amazon Prime Video', mark: true, appId: 'org.tizen.primevideo' },
     { id: 'abciview', name: 'ABC iview', mark: true, appId: 'mWK87Xghap.ABCiview' },
     { id: 'sbs', name: 'SBS On Demand', mark: true, appId: 'OyE7OuxlUi.SBSOnDemand' },
     { id: 'applemusic', name: 'Apple Music', mark: true, appId: 'org.tizen.apple.apple-music' }
   ];
+  PRIMARY_APPS = PRIMARY_APPS.concat([
+    { id: 'tvplus', name: 'Samsung TV Plus', mark: true },
+    { id: 'whio', name: 'WHIO-TV Dayton', mark: true },
+    { id: 'alexa', name: 'Amazon Alexa', mark: true },
+    { id: 'lookmovie', name: 'LookMovie2', mark: true }
+  ]);
+  var DEFAULT_HOME = ['youtube', 'primevideo', 'tvplus', 'whio', 'alexa', 'lookmovie', 'stremio'];
   var PRIMARY = PRIMARY_APPS.map(function (a) { return a.id; }), APPS = PRIMARY_APPS.slice(), ALPHA = [];
   var WALLS = window.CleanFrameWallpapers || [{ id: 'misty', name: 'Misty coast', tone: 'light', ut: { tr: 'mist', br: 'mist' }, frostVeil: .20 }];
   var ADAPTIVE_INK = window.CleanFrameAdaptiveInk || {};
@@ -45,9 +52,9 @@
   };
   var PRIVATE_FONTS = window.CleanFramePrivateFontIDs || [], fontMetrics = {}, unavailableFonts = {}, widthCache = {}, fontsReady = false;
   var LOOK_KEYS = ['bg', 'layout', 'apps', 'font', 'controls', 'focus', 'material'];
-  var LOOK_VALUES = { bg: ['dark', 'light', 'photo'], layout: ['list', 'dock'], apps: ['icons', 'both', 'text'], font: Object.keys(FONTS).filter(function (id) { return id === 'manrope' || PRIVATE_FONTS.indexOf(id) >= 0; }), controls: ['icons', 'both', 'text'], focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] };
+  var LOOK_VALUES = { bg: ['dark', 'light', 'photo'], layout: ['list', 'dock', 'grid'], apps: ['icons', 'both', 'text'], font: Object.keys(FONTS).filter(function (id) { return id === 'manrope' || PRIVATE_FONTS.indexOf(id) >= 0; }), controls: ['icons', 'both', 'text'], focus: ['type', 'glass'], material: ['soft', 'frost', 'tint'] };
   var LOOK_NAMES = { bg: 'Background', layout: 'Layout', apps: 'Apps', font: 'Font', controls: 'Home controls', focus: 'Focus', material: 'Material' };
-  var VALUE_NAMES = { dark: 'Dark', light: 'Light', photo: 'Photo', list: 'List', dock: 'Dock', type: 'Type', glass: 'Glass', soft: 'Soft', frost: 'Frost', tint: 'Clear tint', icons: 'Icons', both: 'Icons and text', text: 'Text' };
+  var VALUE_NAMES = { dark: 'Dark', light: 'Light', photo: 'Photo', list: 'List', dock: 'Dock', grid: 'Grid', type: 'Type', glass: 'Glass', soft: 'Soft', frost: 'Frost', tint: 'Clear tint', icons: 'Icons', both: 'Icons and text', text: 'Text' };
   var UTIL = { art: ['Art Mode', 'art'], apps: ['All apps', 'apps'], arrange: ['Arrange', 'arrange'], settings: ['Settings', 'settings'] };
   var MSG = {
     leave: { title: 'Leave Home?', line: 'Open Samsung Home?', note: '', actions: [['stay', 'Stay'], ['samsung', 'Samsung Home']] }
@@ -338,7 +345,7 @@
       if (!app(id) && id.indexOf('.') > 0) APPS.push({ id: id, appId: id, name: id.split('.').pop(), mark: false });
       if (app(id)) h.push(id);
     });
-    if (!h.length) h = PRIMARY.slice();
+    if (!h.length) h = DEFAULT_HOME.slice();
     (Array.isArray(s.recent) ? s.recent : []).forEach(function (id) { if (safeId(id) && app(id) && h.indexOf(id) < 0 && recent.indexOf(id) < 0 && recent.length < 5) recent.push(id); });
     return {
       bg: pick(modern.bg, LOOK_VALUES.bg, legacyList ? 'dark' : 'photo'), layout: pick(modern.layout, LOOK_VALUES.layout, legacyList ? 'list' : 'dock'),
@@ -461,7 +468,10 @@
     if (!a || busy) return;
     if (S.c.home.indexOf(id) >= 0) { c = next(S.c.home.slice(), S.c.recent.slice()); c.lastApp = id; write(c, 'Last app'); }
     S.press = id; S.lastLaunch = a.name;
-    perform(a.name, function (done) { FrameDevice.launchApp(a.appId, done); });
+    perform(a.name, function (done) {
+      if (DEFAULT_HOME.indexOf(id) >= 0) FrameDevice.shortcut(id, done);
+      else FrameDevice.launchApp(a.appId, done);
+    });
   }
   function refreshCatalog() {
     var request, oldFocus;
@@ -491,7 +501,7 @@
   }
 
   /* ---------- Navigation targets ---------- */
-  function utils() { return ['art', 'apps', 'settings']; }
+  function utils() { return ['apps', 'settings']; }
   /* prev/next run along the apps; out goes to the controls, inn comes back (or to a per-app action). */
   function axes() {
     var v = S.c.layout === 'list';
@@ -534,6 +544,15 @@
   V.home = {
     key: function (t, k) {
       var f = t.f, h = S.c.home, U = utils(), x = axes(), i = ensureSel();
+      if (S.c.layout === 'grid' && f.zone !== 'util') {
+        if (k === 'up') { if (i >= 3) setSel(h[i - 3]); else { f.zone = 'util'; f.u = clamp(S.lastUtil, 0, U.length - 1); } }
+        else if (k === 'down' && i + 3 < h.length) setSel(h[i + 3]);
+        else if (k === 'left' && i % 3 > 0) setSel(h[i - 1]);
+        else if (k === 'right' && i % 3 < 2 && i + 1 < h.length) setSel(h[i + 1]);
+        else if (k === 'ok') launch(S.sel);
+        else if (k === 'back') openMessage('leave');
+        return;
+      }
       if (S.c.layout === 'list') { listHomeKey(t, k, i, U); return; }
       if (f.zone === 'util') {
         f.u = clamp(f.u, 0, U.length - 1);
@@ -711,7 +730,7 @@
   /* ---------- B: two-zone Home editor ---------- */
   function otherGroups() {
     var rec = S.c.recent.filter(function (id) { return !onHome(id) && app(id); });
-    return { recent: rec, rest: ALPHA.filter(function (id) { return !onHome(id) && rec.indexOf(id) < 0; }) };
+    return { recent: rec, rest: DEFAULT_HOME.concat(ALPHA.filter(function (id) { return DEFAULT_HOME.indexOf(id) < 0; })).filter(function (id) { return !onHome(id) && rec.indexOf(id) < 0; }) };
   }
   function otherList() { var o = otherGroups(); return o.recent.concat(o.rest); }
   function editorCut() { return 5; }
@@ -855,7 +874,7 @@
       { id: 'rotation', title: 'Rotation', items: [{ action: 'background.rotation', label: mode().name, disabled: flat }], reason: flat ? 'Choose Photo to use wallpaper and rotation.' : '' }
     ];
     if (t.group === 'layout') return [
-      { id: 'layout', title: 'Layout', horizontal: true, items: options('layout', ['list', 'dock']) },
+      { id: 'layout', title: 'Layout', horizontal: true, items: options('layout', ['list', 'dock', 'grid']) },
       { id: 'apps', title: 'App display', horizontal: true, items: options('apps', ['text', 'icons', 'both']) },
       { id: 'controls', title: 'Home controls', horizontal: true, items: options('controls', ['text', 'icons', 'both']) }
     ];
@@ -1050,9 +1069,27 @@
     var hs = homeState(t);
     renderCaption(t, hs);
     renderUtils(hs);
+    renderGrid(hs);
     if (S.c.layout === 'list') renderList(hs);
     else { photoMode = null; renderDock(hs); }
     renderAppFocusName(hs);
+  }
+
+  function shortcutStatus(id) {
+    if (id === 'alexa') return 'Use the remote · no direct launch';
+    if (id === 'whio') return 'Requires an installed TV app';
+    if (id === 'lookmovie') return 'Website · browser handoff unverified';
+    return 'Installed app required';
+  }
+  function renderGrid(hs) {
+    var grid = document.getElementById('homeGrid'), html = '';
+    S.c.home.forEach(function (id, i) {
+      var a = app(id);
+      html += '<button tabindex="-1" class="home-grid-tile' + (hs.zone === 'apps' && i === hs.i ? ' is-focus' : '') + '" data-z="app" data-i="' + i + '" data-action="home.app.' + id + '">' + appMark(a, 120, 72, 58) + '<span>' + esc(a.name) + '</span><small>' + shortcutStatus(id) + '</small></button>';
+    });
+    setHTML(grid, html);
+    var status = document.getElementById('shortcutStatus');
+    status.textContent = hs.zone === 'apps' && S.c.home[hs.i] ? shortcutStatus(S.c.home[hs.i]) : 'Samsung AU8000 · Browser preview cannot launch TV apps';
   }
 
   function clockText() {

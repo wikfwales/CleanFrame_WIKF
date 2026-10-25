@@ -597,3 +597,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .is-font-switch .home .ph-name,.is-font-switch .home .clock,.is-font-switch .home .tile .label,.is-font-switch .home .u-label,.is-font-switch .home .app-focus-name,.is-font-switch .home .util-focus-label{animation:font-in 160ms linear}
 @keyframes font-in{from{opacity:0}}
 @media(prefers-reduced-motion:reduce){.is-font-switch .home .ph-name,.is-font-switch .home .clock,.is-font-switch .home .tile .label,.is-font-switch .home .u-label,.is-font-switch .home .app-focus-name,.is-font-switch .home .util-focus-label{animation-duration:120ms}}
+
+/* AU8000: static translucent surfaces; no live blur or expensive filters. */
+.home-grid{display:none;position:absolute;left:330px;top:260px;width:1260px;grid-template-columns:repeat(3,1fr);gap:24px}
+.l-grid .home-grid{display:grid}
+.l-grid .dock,.l-grid .ph-scene,.l-grid .cue,.l-grid .dock-action,.l-grid .app-focus-name{display:none!important}
+.home-grid-tile{height:210px;border:1px solid rgba(255,255,255,.25);border-radius:24px;background:rgba(18,24,30,.66);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font:500 28px Manrope,sans-serif;gap:12px;transition:transform 120ms ease,background-color 120ms linear}
+.home-grid-tile.is-focus{background:rgba(45,61,74,.92);border:3px solid white;transform:scale(1.025)}
+.home-grid-tile small{font:400 18px Manrope,sans-serif;opacity:.8}
+.shortcut-status{position:absolute;bottom:52px;left:200px;right:200px;text-align:center;font:400 22px Manrope,sans-serif;color:white;text-shadow:0 1px 4px #000}
+.l-list .shortcut-status{display:none}
+@media(prefers-reduced-motion:reduce){.home-grid-tile{transition:none;transform:none!important}}
